@@ -1,6 +1,7 @@
 package com.vitanov.multiimagepicker;
 
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -21,9 +22,11 @@ import com.zhihu.matisse.engine.impl.GlideEngine;
 import android.content.pm.ActivityInfo;
 
 import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
@@ -158,8 +161,14 @@ public class MultiImagePickerPlugin implements
                 Activity activity = activityReference.get();
                 if (activity == null || activity.isFinishing()) return null;
 
-                Bitmap sourceBitmap = getCorrectlyOrientedImage(activity, uri);
-                Bitmap bitmap = ThumbnailUtils.extractThumbnail(sourceBitmap, this.width, this.height, OPTIONS_RECYCLE_INPUT);
+                Bitmap sourceBitmap, bitmap;
+
+                if(isVideo(activity, uri) == true){
+                    bitmap = ThumbnailUtils.createVideoThumbnail(getPath(activity, uri), MediaStore.Images.Thumbnails.MINI_KIND);
+                } else {
+                    sourceBitmap = getCorrectlyOrientedImage(activity, uri);
+                    bitmap = ThumbnailUtils.extractThumbnail(sourceBitmap, this.width, this.height, OPTIONS_RECYCLE_INPUT);
+                }
 
                 if (bitmap == null) return null;
 
@@ -184,14 +193,14 @@ public class MultiImagePickerPlugin implements
         }
     }
 
-    private static class GetImageTask extends AsyncTask<String, Void, Void> {
+    private static class GetOriginalDataTask extends AsyncTask<String, Void, Void> {
         private WeakReference<Activity> activityReference;
 
         BinaryMessenger messenger;
         String identifier;
         int quality;
 
-        GetImageTask(Activity context, BinaryMessenger messenger, String identifier, int quality) {
+        GetOriginalDataTask(Activity context, BinaryMessenger messenger, String identifier, int quality) {
             super();
             this.messenger = messenger;
             this.identifier = identifier;
@@ -204,22 +213,39 @@ public class MultiImagePickerPlugin implements
             final Uri uri = Uri.parse(this.identifier);
             byte[] bytesArray = null;
 
-            try {
-                // get a reference to the activity if it is still there
-                Activity activity = activityReference.get();
-                if (activity == null || activity.isFinishing()) return null;
+            Activity activity = activityReference.get();
+            if (activity == null || activity.isFinishing()) return null;
 
-                Bitmap bitmap = getCorrectlyOrientedImage(activity, uri);
+            if(isVideo(activity, uri) == true){
+                try {//from w  w  w . j  av a  2s .  c  o  m
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-                if (bitmap == null) return null;
+                    FileInputStream fis = new FileInputStream(new File(getPath(activity,uri)));
+                    byte[] buf = new byte[1024];
+                    int n;
+                    while (-1 != (n = fis.read(buf)))
+                        baos.write(buf, 0, n);
+                    bytesArray = baos.toByteArray();
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else{
+                try {
 
-                ByteArrayOutputStream bitmapStream = new ByteArrayOutputStream();
-                bitmap.compress(Bitmap.CompressFormat.JPEG, this.quality, bitmapStream);
-                bytesArray = bitmapStream.toByteArray();
-                bitmap.recycle();
-                bitmapStream.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+                    Bitmap bitmap = getCorrectlyOrientedImage(activity, uri);
+
+                    if (bitmap == null) return null;
+
+                    ByteArrayOutputStream bitmapStream = new ByteArrayOutputStream();
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, this.quality, bitmapStream);
+                    bytesArray = bitmapStream.toByteArray();
+                    bitmap.recycle();
+                    bitmapStream.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
 
             assert bytesArray != null;
@@ -244,7 +270,7 @@ public class MultiImagePickerPlugin implements
         } else if (REQUEST_ORIGINAL.equals(call.method)) {
             final String identifier = call.argument("identifier");
             final int quality = call.argument("quality");
-            GetImageTask task = new GetImageTask(this.activity, this.messenger, identifier, quality);
+            GetOriginalDataTask task = new GetOriginalDataTask(this.activity, this.messenger, identifier, quality);
             task.execute("");
             finishWithSuccess(true);
 
@@ -453,6 +479,11 @@ public class MultiImagePickerPlugin implements
         return result;
     }
 
+    private static boolean isVideo(Activity activity, Uri uri){
+        ContentResolver cR = activity.getContentResolver();
+        return cR.getType(uri).contains("video");
+    }
+
     private HashMap<String, Object> getExif_str(ExifInterface exifInterface, String[] tags){
         HashMap<String, Object> result = new HashMap<>();
         for (String tag : tags) {
@@ -534,7 +565,7 @@ public class MultiImagePickerPlugin implements
         boolean enableCamera = MultiImagePickerPlugin.this.methodCall.argument(ENABLE_CAMERA);
         String packageName = context.getApplicationInfo().packageName;
         Matisse.from(MultiImagePickerPlugin.this.activity)
-                .choose(MimeType.ofImage())
+                .choose(MimeType.ofAll())
                 .countable(true)
                 .capture(enableCamera)
                 .captureStrategy(
@@ -556,7 +587,6 @@ public class MultiImagePickerPlugin implements
                 map.put("identifier", uri.toString());
                 InputStream is = null;
                 int width = 0, height = 0;
-
                 try {
                     is = context.getContentResolver().openInputStream(uri);
                     BitmapFactory.Options dbo = new BitmapFactory.Options();
@@ -568,14 +598,19 @@ public class MultiImagePickerPlugin implements
                         is.close();
                     }
 
-                    int orientation = getOrientation(context, uri);
-
-                    if (orientation == 90 || orientation == 270) {
-                        width = dbo.outHeight;
-                        height = dbo.outWidth;
+                    if(isVideo(MultiImagePickerPlugin.this.activity, uri)){
+                        Bitmap bitmap = ThumbnailUtils.createVideoThumbnail(getPath(MultiImagePickerPlugin.this.activity, uri), MediaStore.Images.Thumbnails.MINI_KIND);
+                        width = bitmap.getWidth();
+                        height = bitmap.getHeight();
                     } else {
-                        width = dbo.outWidth;
-                        height = dbo.outHeight;
+                        int orientation = getOrientation(context, uri);
+                        if (orientation == 90 || orientation == 270) {
+                            width = dbo.outHeight;
+                            height = dbo.outWidth;
+                        } else {
+                            width = dbo.outWidth;
+                            height = dbo.outHeight;
+                        }
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -596,6 +631,15 @@ public class MultiImagePickerPlugin implements
             clearMethodCallAndResult();
         }
         return false;
+    }
+
+    private static String getPath(Activity activity, Uri uri) {
+        String[] projection = { MediaStore.Images.Media.DATA };
+        Cursor cursor = activity.managedQuery(uri, projection, null, null, null);
+        int column_index = cursor
+                .getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+        cursor.moveToFirst();
+        return cursor.getString(column_index);
     }
 
     private String getFileName(Uri uri) {

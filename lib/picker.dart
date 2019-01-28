@@ -50,6 +50,8 @@ class MultiImagePicker {
 
     var assets = List<Asset>();
     for (var item in images) {
+      print(item.toString());
+      
       var asset = Asset(
         item['identifier'],
         item['name'],
