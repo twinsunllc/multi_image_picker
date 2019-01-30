@@ -43,6 +43,7 @@ class _MyAppState extends State<MyApp> {
         maxImages: 300,
         enableCamera: true,
         options: CupertinoOptions(takePhotoIcon: "chat"),
+        enableVideos: true,
       );
     } on PlatformException catch (e) {
       error = e.message;

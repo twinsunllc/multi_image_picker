@@ -33,6 +33,7 @@ class MultiImagePicker {
   static Future<List<Asset>> pickImages({
     @required int maxImages,
     bool enableCamera = false,
+    bool enableVideos = false,
     CupertinoOptions options = const CupertinoOptions(),
   }) async {
     assert(maxImages != null);
@@ -46,6 +47,7 @@ class MultiImagePicker {
       'maxImages': maxImages,
       'enableCamera': enableCamera,
       'iosOptions': options.toJson(),
+      'enableVideos': enableVideos,
     });
 
     var assets = List<Asset>();

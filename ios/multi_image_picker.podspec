@@ -15,10 +15,11 @@ A new flutter plugin project.
   s.source_files = 'Classes/**/*'
   s.public_header_files = 'Classes/**/*.h'
   s.dependency 'Flutter'
+  
   s.dependency 'BSImagePicker', '~> 2.9.0'
 
   s.pod_target_xcconfig = { "DEFINES_MODULE" => "YES" }
   s.swift_version = '4.2'
-  s.ios.deployment_target = '8.0'
+  s.ios.deployment_target = '9.0'
 end
 
