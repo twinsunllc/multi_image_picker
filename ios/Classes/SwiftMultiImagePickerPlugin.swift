@@ -169,28 +169,48 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
             let quality = arguments["quality"] as! Int
             let manager = PHImageManager.default()
             let options = PHImageRequestOptions()
+            let videoOptions = PHVideoRequestOptions()
 
             options.deliveryMode = PHImageRequestOptionsDeliveryMode.highQualityFormat
             options.isSynchronous = false
             options.isNetworkAccessAllowed = true
+            
+            videoOptions.deliveryMode = PHVideoRequestOptionsDeliveryMode.mediumQualityFormat
+            videoOptions.isNetworkAccessAllowed = true
 
             let assets: PHFetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [identifier], options: nil)
 
             if (assets.count > 0) {
                 let asset: PHAsset = assets[0];
-
-                let ID: PHImageRequestID = manager.requestImage(
-                    for: asset,
-                    targetSize: PHImageManagerMaximumSize,
-                    contentMode: PHImageContentMode.aspectFill,
-                    options: options,
-                    resultHandler: {
-                        (image: UIImage?, info) in
-                        self.messenger.send(onChannel: "multi_image_picker/image/" + identifier, message: image!.jpegData(compressionQuality: CGFloat(quality / 100)))
-                })
-
-                if(PHInvalidImageRequestID != ID) {
-                    result(true);
+                
+                if(asset.mediaType == PHAssetMediaType.video){
+                    let ID: PHImageRequestID = manager.requestAVAsset(
+                        forVideo: asset,
+                        options: videoOptions,
+                        resultHandler: {
+                        (video: AVAsset?, audioMix: AVAudioMix?, info) in
+                            let videourl = video as! AVURLAsset
+                            do{
+                            let videodata = try Data(contentsOf: videourl.url)
+                            self.messenger.send(onChannel: "multi_image_picker/image/" + identifier, message: videodata)
+                            } catch { print("error in video load") }
+                        })
+                    if(PHInvalidImageRequestID != ID) {
+                        result(true);
+                    }
+                } else {
+                    let ID: PHImageRequestID = manager.requestImage(
+                        for: asset,
+                        targetSize: PHImageManagerMaximumSize,
+                        contentMode: PHImageContentMode.aspectFill,
+                        options: options,
+                        resultHandler: {
+                            (image: UIImage?, info) in
+                            self.messenger.send(onChannel: "multi_image_picker/image/" + identifier, message: image!.jpegData(compressionQuality: CGFloat(quality / 100)))
+                    })
+                    if(PHInvalidImageRequestID != ID) {
+                        result(true);
+                    }
                 }
             }
             break;
