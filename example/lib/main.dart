@@ -25,9 +25,21 @@ class _MyAppState extends State<MyApp> {
     return GridView.count(
       crossAxisCount: 3,
       children: List.generate(images.length, (index) {
-        return AssetView(index, images[index]);
+        Asset asset = images[index];
+        return AssetView(
+          index,
+          asset,
+          key: UniqueKey(),
+        );
       }),
     );
+  }
+
+  Future<void> deleteAssets() async {
+    await MultiImagePicker.deleteImages(assets: images);
+    setState(() {
+      images = List<Asset>();
+    });
   }
 
   Future<void> loadAssets() async {
@@ -74,6 +86,12 @@ class _MyAppState extends State<MyApp> {
               child: Text("Pick images"),
               onPressed: loadAssets,
             ),
+            images.length > 0
+                ? RaisedButton(
+                    child: Text("Delete images"),
+                    onPressed: deleteAssets,
+                  )
+                : Container(),
             Expanded(
               child: buildGridView(),
             )

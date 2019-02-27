@@ -2,6 +2,8 @@ package com.vitanov.multiimagepicker;
 
 import android.app.Activity;
 import android.content.ContentResolver;
+import android.content.ContentProviderOperation;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -28,6 +30,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -42,10 +45,11 @@ import android.Manifest;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Environment;
+import android.provider.ContactsContract;
 import android.provider.MediaStore;
-import android.support.media.ExifInterface;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
+import androidx.exifinterface.media.ExifInterface;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import android.text.TextUtils;
 
 import io.flutter.plugin.common.BinaryMessenger;
@@ -57,6 +61,7 @@ import io.flutter.plugin.common.PluginRegistry;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
 
 import static android.media.ThumbnailUtils.OPTIONS_RECYCLE_INPUT;
+import static com.vitanov.multiimagepicker.FileDirectory.getPath;
 
 
 /**
@@ -75,6 +80,7 @@ public class MultiImagePickerPlugin implements
     private static final String REQUEST_ORIGINAL = "requestOriginal";
     private static final String REQUEST_METADATA = "requestMetadata";
     private static final String PICK_IMAGES = "pickImages";
+    private static final String DELETE_IMAGES = "deleteImages";
     private static final String REFRESH_IMAGE = "refreshImage" ;
     private static final String MAX_IMAGES = "maxImages";
     private static final String ENABLE_CAMERA = "enableCamera";
@@ -267,6 +273,12 @@ public class MultiImagePickerPlugin implements
 
         if (PICK_IMAGES.equals(call.method)) {
             openImagePicker();
+        }
+        else if (DELETE_IMAGES.equals(call.method)) {
+            final ArrayList<String> identifiers = call.argument("identifiers");
+            DeleteImageTask task = new DeleteImageTask(this.activity, identifiers);
+            task.execute();
+            finishWithSuccess(true);
         } else if (REQUEST_ORIGINAL.equals(call.method)) {
             final String identifier = call.argument("identifier");
             final int quality = call.argument("quality");
@@ -280,7 +292,7 @@ public class MultiImagePickerPlugin implements
             final int height = call.argument("height");
             final int quality = call.argument("quality");
             GetThumbnailTask task = new GetThumbnailTask(this.activity, this.messenger, identifier, width, height, quality);
-            task.execute("");
+            task.execute();
             finishWithSuccess(true);
 
 
@@ -288,21 +300,13 @@ public class MultiImagePickerPlugin implements
             final String identifier = call.argument("identifier");
 
             final Uri uri = Uri.parse(identifier);
-            InputStream in = null;
-            try {
-                in = context.getContentResolver().openInputStream(uri);
+            try (InputStream in = context.getContentResolver().openInputStream(uri)) {
                 assert in != null;
                 ExifInterface exifInterface = new ExifInterface(in);
                 finishWithSuccess(getPictureExif(exifInterface));
 
             } catch (IOException e) {
                 finishWithError("Exif error", e.toString());
-            } finally {
-                if (in != null) {
-                    try {
-                        in.close();
-                    } catch (IOException ignored) {}
-                }
             }
 
         } else if (REFRESH_IMAGE.equals(call.method)) {
@@ -566,6 +570,7 @@ public class MultiImagePickerPlugin implements
         String packageName = context.getApplicationInfo().packageName;
         Matisse.from(MultiImagePickerPlugin.this.activity)
                 .choose(MimeType.ofAll())
+                .showSingleMediaType(true)
                 .countable(true)
                 .capture(enableCamera)
                 .captureStrategy(

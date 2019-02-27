@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+### Changed (v3.0.21)
+
+## 2019-02-27
+- Added ability to delete array of Assets from the filesystem [#79](https://github.com/Sh1d0w/multi_image_picker/pull/79)
+  
+### Changed (v3.0.14)
+
+## 2019-02-17
+- Fix failing build on Android
+
+### Changed (v3.0.13)
+
+## 2019-02-13
+- Display only images in the picker on Android [#73](https://github.com/Sh1d0w/multi_image_picker/pull/73)
+
+### Changed (v3.0.12)
+
+## 2019-02-05
+- Use custom fork of Matisse until it adds AndroidX support.
+
+
+### Changed (v3.0.11)
+
+## 2019-01-29
+### BREAKING CHANGE
+- Migrate from the deprecated original Android Support Library to AndroidX. This shouldn't result in any functional changes, but it requires any Android apps using this plugin to [also migrate](https://developer.android.com/jetpack/androidx/migrate) if they're using the original support library.
+
+### Changed (v2.4.11)
+
+## 2019-01-23
+### BREAKING CHANGE
+- Renamed Metadata properties to lowerCamelCase in order to resolve https://github.com/dart-lang/sdk/issues/35732
+
+### Changed (v2.3.33)
+
+## 2019-01-23
+- Correctly handle LensSpecification and SubjectArea metadata
+
 ### Changed (v2.3.32)
 
 ## 2019-01-14
@@ -18,7 +56,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## 2019-01-07
 - Fix bug with permissions on Android
-  
+
 ### Changed (v2.3.28)
 
 ## 2018-12-29
@@ -59,7 +97,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 2018-12-13
 ### BREAKING CHANGE
 - Android - renamed authorities to `android:authorities="YOUR_PACKAGE_NAME_HERE.multiimagepicker.fileprovider"`. Please update your manifest file to avoid errors.
-
 
 ### Changed (v2.2.61)
 
