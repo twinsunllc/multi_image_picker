@@ -274,12 +274,7 @@ public class MultiImagePickerPlugin implements
         if (PICK_IMAGES.equals(call.method)) {
             openImagePicker();
         }
-        else if (DELETE_IMAGES.equals(call.method)) {
-            final ArrayList<String> identifiers = call.argument("identifiers");
-            DeleteImageTask task = new DeleteImageTask(this.activity, identifiers);
-            task.execute();
-            finishWithSuccess(true);
-        } else if (REQUEST_ORIGINAL.equals(call.method)) {
+        else if (REQUEST_ORIGINAL.equals(call.method)) {
             final String identifier = call.argument("identifier");
             final int quality = call.argument("quality");
             GetOriginalDataTask task = new GetOriginalDataTask(this.activity, this.messenger, identifier, quality);
