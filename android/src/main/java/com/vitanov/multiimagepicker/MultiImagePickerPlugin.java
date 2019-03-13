@@ -12,6 +12,7 @@ import android.database.CursorIndexOutOfBoundsException;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.media.MediaMetadataRetriever;
 import android.media.MediaScannerConnection;
 import android.media.ThumbnailUtils;
 import android.net.Uri;
@@ -20,6 +21,9 @@ import com.zhihu.matisse.Matisse;
 import com.zhihu.matisse.MimeType;
 import com.zhihu.matisse.internal.entity.CaptureStrategy;
 import com.zhihu.matisse.engine.impl.GlideEngine;
+import com.zhihu.matisse.internal.entity.IncapableCause;
+import com.zhihu.matisse.filter.Filter;
+import com.zhihu.matisse.internal.entity.Item;
 
 import android.content.pm.ActivityInfo;
 
@@ -40,6 +44,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import android.Manifest;
 import android.os.AsyncTask;
@@ -564,7 +569,7 @@ public class MultiImagePickerPlugin implements
         boolean enableCamera = MultiImagePickerPlugin.this.methodCall.argument(ENABLE_CAMERA);
         String packageName = context.getApplicationInfo().packageName;
         Matisse.from(MultiImagePickerPlugin.this.activity)
-                .choose(MimeType.ofAll())
+                .choose(MimeType.of(MimeType.JPEG, MimeType.PNG, MimeType.MPEG, MimeType.MP4, MimeType.QUICKTIME, MimeType.AVI, MimeType.MKV))
                 .showSingleMediaType(true)
                 .countable(true)
                 .capture(enableCamera)
@@ -572,6 +577,7 @@ public class MultiImagePickerPlugin implements
                         new CaptureStrategy(true, packageName + ".multiimagepicker.fileprovider")
                 )
                 .maxSelectable(maxImages)
+                .addFilter(new GalleryVideoFilter())
                 .restrictOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
                 .imageEngine(new GlideEngine())
                 .forResult(REQUEST_CODE_CHOOSE);
@@ -755,5 +761,29 @@ public class MultiImagePickerPlugin implements
         this.methodCall = methodCall;
         pendingResult = result;
         return true;
+    }
+
+    class GalleryVideoFilter extends Filter {
+        //@Override
+        protected Set<MimeType> constraintTypes() {
+            return MimeType.ofVideo();
+        }
+
+        //@Override
+        public IncapableCause filter(Context context, Item item) {
+            if (!needFiltering(context, item))
+                return null;
+
+            MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+            retriever.setDataSource(context, item.uri);
+            String time = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
+            if (time != null) {
+                long timeInMillis = Long.parseLong(time);
+                if (timeInMillis > 30* 1000) {
+                    return new IncapableCause(IncapableCause.DIALOG, "Videos must be 30 seconds or shorter.");
+                }
+            }
+            return null;
+        }
     }
 }
