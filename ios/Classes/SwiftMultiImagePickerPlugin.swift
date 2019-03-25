@@ -29,24 +29,24 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
     var controller: FlutterViewController!
     var imagesResult: FlutterResult?
     var messenger: FlutterBinaryMessenger;
-
+    
     let genericError = "500"
-
+    
     init(cont: FlutterViewController, messenger: FlutterBinaryMessenger) {
         self.controller = cont;
         self.messenger = messenger;
         super.init();
     }
-
+    
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "multi_image_picker", binaryMessenger: registrar.messenger())
-
+        
         let app =  UIApplication.shared
         let controller : FlutterViewController = app.delegate!.window!!.rootViewController as! FlutterViewController;
         let instance = SwiftMultiImagePickerPlugin.init(cont: controller, messenger: registrar.messenger())
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
-
+    
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch (call.method) {
         case "pickImages":
@@ -57,76 +57,76 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
             let enableVideos = arguments["enableVideos"] as! Bool
             let options = arguments["iosOptions"] as! Dictionary<String, String>
             vc.maxNumberOfSelections = maxImages
-
+            
             if (enableCamera) {
                 vc.takePhotos = true
             }
-
+            
             if (enableVideos) {
                 vc.enableVideos = true
             }
-
+            
             if let takePhotoIcon = options["takePhotoIcon"] {
                 if (!takePhotoIcon.isEmpty) {
                     vc.takePhotoIcon = UIImage(named: takePhotoIcon)
                 }
             }
-
+            
             if let backgroundColor = options["backgroundColor"] {
                 if (!backgroundColor.isEmpty) {
                     vc.backgroundColor = hexStringToUIColor(hex: backgroundColor)
                 }
             }
-
+            
             if let selectionFillColor = options["selectionFillColor"] {
                 if (!selectionFillColor.isEmpty) {
                     vc.selectionFillColor = hexStringToUIColor(hex: selectionFillColor)
                 }
             }
-
+            
             if let selectionShadowColor = options["selectionShadowColor"] {
                 if (!selectionShadowColor.isEmpty) {
                     vc.selectionShadowColor = hexStringToUIColor(hex: selectionShadowColor)
                 }
             }
-
+            
             if let selectionStrokeColor = options["selectionStrokeColor"] {
                 if (!selectionStrokeColor.isEmpty) {
                     vc.selectionStrokeColor = hexStringToUIColor(hex: selectionStrokeColor)
                 }
             }
-
+            
             if let selectionTextColor = options["selectionTextColor"] {
                 if (!selectionTextColor.isEmpty) {
                     vc.selectionTextAttributes[NSAttributedString.Key.foregroundColor] = hexStringToUIColor(hex: selectionTextColor)
                 }
             }
-
+            
             if let selectionCharacter = options["selectionCharacter"] {
                 if (!selectionCharacter.isEmpty) {
                     vc.selectionCharacter = Character(selectionCharacter)
                 }
             }
-
+            
             controller!.bs_presentImagePickerController(vc, animated: true,
-                select: { (asset: PHAsset) -> Void in
-
-                }, deselect: { (asset: PHAsset) -> Void in
-
-                }, cancel: { (assets: [PHAsset]) -> Void in
-                    result([])
-                }, finish: { (assets: [PHAsset]) -> Void in
-                    var results = [NSDictionary]();
-                    for asset in assets {
-                        results.append([
-                            "identifier": asset.localIdentifier,
-                            "width": asset.pixelWidth,
-                            "height": asset.pixelHeight,
-                            "name": asset.originalFilename!
+                                                        select: { (asset: PHAsset) -> Void in
+                                                            
+            }, deselect: { (asset: PHAsset) -> Void in
+                
+            }, cancel: { (assets: [PHAsset]) -> Void in
+                result([])
+            }, finish: { (assets: [PHAsset]) -> Void in
+                var results = [NSDictionary]();
+                for asset in assets {
+                    results.append([
+                        "identifier": asset.localIdentifier,
+                        "width": asset.pixelWidth,
+                        "height": asset.pixelHeight,
+                        "name": asset.originalFilename!
                         ]);
-                    }
-                    result(results);
-                }, completion: nil)
+                }
+                result(results);
+            }, completion: nil)
             break;
         case "requestThumbnail":
             let arguments = call.arguments as! Dictionary<String, AnyObject>
@@ -134,20 +134,20 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
             let width = arguments["width"] as! Int
             let height = arguments["height"] as! Int
             let quality = arguments["quality"] as! Int
-
+            
             let manager = PHImageManager.default()
             let options = PHImageRequestOptions()
-
+            
             options.deliveryMode = PHImageRequestOptionsDeliveryMode.highQualityFormat
             options.resizeMode = PHImageRequestOptionsResizeMode.exact
             options.isSynchronous = false
             options.isNetworkAccessAllowed = true
-
+            
             let assets: PHFetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [identifier], options: nil)
-
+            
             if (assets.count > 0) {
                 let asset: PHAsset = assets[0];
-
+                
                 let ID: PHImageRequestID = manager.requestImage(
                     for: asset,
                     targetSize: CGSize(width: width, height: height),
@@ -156,8 +156,8 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
                     resultHandler: {
                         (image: UIImage?, info) in
                         self.messenger.send(onChannel: "multi_image_picker/image/" + identifier, message: image?.jpegData(compressionQuality: CGFloat(quality / 100)))
-                        })
-
+                })
+                
                 if(PHInvalidImageRequestID != ID) {
                     result(true);
                 }
@@ -170,16 +170,16 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
             let manager = PHImageManager.default()
             let options = PHImageRequestOptions()
             let videoOptions = PHVideoRequestOptions()
-
+            
             options.deliveryMode = PHImageRequestOptionsDeliveryMode.highQualityFormat
             options.isSynchronous = false
             options.isNetworkAccessAllowed = true
             
             videoOptions.deliveryMode = PHVideoRequestOptionsDeliveryMode.mediumQualityFormat
             videoOptions.isNetworkAccessAllowed = true
-
+            
             let assets: PHFetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [identifier], options: nil)
-
+            
             if (assets.count > 0) {
                 let asset: PHAsset = assets[0];
                 
@@ -188,13 +188,48 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
                         forVideo: asset,
                         options: videoOptions,
                         resultHandler: {
-                        (video: AVAsset?, audioMix: AVAudioMix?, info) in
+                            (video: AVAsset?, audioMix: AVAudioMix?, info) in
                             let videourl = video as! AVURLAsset
-                            do{
-                            let videodata = try Data(contentsOf: videourl.url)
-                            self.messenger.send(onChannel: "multi_image_picker/image/" + identifier, message: videodata)
-                            } catch { print("error in video load") }
-                        })
+                            
+                            let compressedURL = NSURL.fileURL(withPath: NSTemporaryDirectory() + NSUUID().uuidString + ".m4v")
+                            
+                            SwiftMultiImagePickerPlugin.compressVideo(inputURL: videourl.url as! URL, outputURL: compressedURL) { (exportSession) in
+                                do{
+                                    guard let session = exportSession else {
+                                        return
+                                    }
+                                    
+                                    switch session.status {
+                                    case .unknown:
+                                        break
+                                    case .waiting:
+                                        break
+                                    case .exporting:
+                                        break
+                                    case .completed:
+                                        guard let compressedData = NSData(contentsOf: compressedURL) else {
+                                            return
+                                        }
+                                        print("File size after compression: \(Double(compressedData.length))")
+                                        self.messenger.send(onChannel: "multi_image_picker/image/" + identifier, message: compressedData as Data)
+                                        result(true)
+                                    case .failed:
+                                        let videodata = try Data(contentsOf: videourl.url)
+                                        self.messenger.send(onChannel: "multi_image_picker/image/" + identifier, message: videodata)
+                                        result(true)
+                                        break
+                                    case .cancelled:
+                                        let videodata = try Data(contentsOf: videourl.url)
+                                        self.messenger.send(onChannel: "multi_image_picker/image/" + identifier, message: videodata)
+                                        result(true)
+                                        break
+                                    }
+                                }
+                                catch {
+                                    print("lol")
+                                }
+                            }
+                    })
                     if(PHInvalidImageRequestID != ID) {
                         result(true);
                     }
@@ -224,13 +259,13 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
             PHPhotoLibrary.shared().performChanges( {
                 PHAssetChangeRequest.deleteAssets(assets)
             },
-            completionHandler: { success, error in
-                if(success) {
-                    result(true)
-                }
-                else {
-                    result(false)
-                }
+                                                    completionHandler: { success, error in
+                                                        if(success) {
+                                                            result(true)
+                                                        }
+                                                        else {
+                                                            result(false)
+                                                        }
             })
             break ;
         case "requestMetadata":
@@ -245,6 +280,22 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
             break;
         default:
             result(FlutterMethodNotImplemented)
+        }
+    }
+    
+    static func compressVideo(inputURL: URL, outputURL: URL, handler: @escaping (_ exportSession: AVAssetExportSession?)-> Void) {
+        let urlAsset = AVURLAsset(url: inputURL, options: nil)
+        guard let exportSession = AVAssetExportSession(asset: urlAsset, presetName: AVAssetExportPresetMediumQuality) else {
+            handler(nil)
+            
+            return
+        }
+        
+        exportSession.outputURL = outputURL
+        exportSession.outputFileType = AVFileType.mov
+        exportSession.shouldOptimizeForNetworkUse = true
+        exportSession.exportAsynchronously { () -> Void in
+            handler(exportSession)
         }
     }
     
@@ -275,21 +326,21 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
         return imagePropertiesDictionary
         
     }
-
+    
     func hexStringToUIColor (hex:String) -> UIColor {
         var cString:String = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-
+        
         if (cString.hasPrefix("#")) {
             cString.remove(at: cString.startIndex)
         }
-
+        
         if ((cString.count) != 6) {
             return UIColor.gray
         }
-
+        
         var rgbValue:UInt32 = 0
         Scanner(string: cString).scanHexInt32(&rgbValue)
-
+        
         return UIColor(
             red: CGFloat((rgbValue & 0xFF0000) >> 16) / 255.0,
             green: CGFloat((rgbValue & 0x00FF00) >> 8) / 255.0,
