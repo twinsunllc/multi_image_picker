@@ -143,7 +143,7 @@ public class MultiImagePickerPlugin implements
 
     }
 
-    private static class GetThumbnailTask extends AsyncTask<String, Void, Void> {
+    private static class GetThumbnailTask extends AsyncTask<String, Void, ByteBuffer> {
         private WeakReference<Activity> activityReference;
         BinaryMessenger messenger;
         String identifier;
@@ -162,7 +162,7 @@ public class MultiImagePickerPlugin implements
         }
 
         @Override
-        protected Void doInBackground(String... strings) {
+        protected ByteBuffer doInBackground(String... strings) {
             final Uri uri = Uri.parse(this.identifier);
             InputStream stream = null;
             byte[] byteArray = null;
@@ -195,16 +195,28 @@ public class MultiImagePickerPlugin implements
 
             final ByteBuffer buffer;
             if (byteArray != null) {
+                // buffer = ByteBuffer.allocateDirect(byteArray.length);
+                // buffer.put(byteArray);
+                // this.messenger.send("multi_image_picker/image/" + this.identifier, buffer);
+                // buffer.clear();
                 buffer = ByteBuffer.allocateDirect(byteArray.length);
                 buffer.put(byteArray);
-                this.messenger.send("multi_image_picker/image/" + this.identifier, buffer);
-                buffer.clear();
+                return buffer;
             }
             return null;
         }
+
+        @Override
+        protected void onPostExecute(ByteBuffer buffer) {
+            super.onPostExecute(buffer);
+            if (buffer != null) {
+                this.messenger.send("multi_image_picker/image/" + this.identifier, buffer);
+                buffer.clear();
+            }
+        }
     }
 
-    private static class GetOriginalDataTask extends AsyncTask<String, Void, Void> {
+    private static class GetOriginalDataTask extends AsyncTask<String, Void, ByteBuffer> {
         private WeakReference<Activity> activityReference;
 
         BinaryMessenger messenger;
@@ -220,7 +232,7 @@ public class MultiImagePickerPlugin implements
         }
 
         @Override
-        protected Void doInBackground(String... strings) {
+        protected ByteBuffer doInBackground(String... strings) {
             final Uri uri = Uri.parse(this.identifier);
             byte[] bytesArray = null;
 
@@ -259,12 +271,24 @@ public class MultiImagePickerPlugin implements
                 }
             }
 
+            // assert bytesArray != null;
+            // final ByteBuffer buffer = ByteBuffer.allocateDirect(bytesArray.length);
+            // buffer.put(bytesArray);
+            // this.messenger.send("multi_image_picker/image/" + this.identifier, buffer);
+            // buffer.clear();
+            // return null;
+
             assert bytesArray != null;
             final ByteBuffer buffer = ByteBuffer.allocateDirect(bytesArray.length);
             buffer.put(bytesArray);
+            return buffer;
+        }
+
+        @Override
+        protected void onPostExecute(ByteBuffer buffer) {
+            super.onPostExecute(buffer);
             this.messenger.send("multi_image_picker/image/" + this.identifier, buffer);
             buffer.clear();
-            return null;
         }
     }
 
