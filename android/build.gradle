@@ -16,7 +16,8 @@ rootProject.allprojects {
     repositories {
         google()
         jcenter()
-        maven { url 'https://jitpack.io' }
+        mavenCentral()
+        //maven { url 'https://jitpack.io' }
     }
 }
 
@@ -36,6 +37,6 @@ android {
 
 dependencies {
     implementation 'androidx.exifinterface:exifinterface:1.0.0'
-    implementation 'com.github.Sh1d0w:Matisse:040393d'
+    implementation 'com.zhihu.android:matisse:0.5.2-beta5'
     implementation 'com.github.bumptech.glide:glide:3.8.0'
 }
