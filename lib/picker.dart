@@ -8,8 +8,7 @@ import 'package:multi_image_picker/cupertino_options.dart';
 import 'package:multi_image_picker/metadata.dart';
 
 class MultiImagePicker {
-  static const MethodChannel _channel =
-      const MethodChannel('multi_image_picker');
+  static const MethodChannel _channel = const MethodChannel('multi_image_picker');
 
   /// Invokes the multi image picker selector.
   ///
@@ -42,8 +41,7 @@ class MultiImagePicker {
       throw new ArgumentError.value(maxImages, 'maxImages cannot be negative');
     }
 
-    final List<dynamic> images =
-        await _channel.invokeMethod('pickImages', <String, dynamic>{
+    final List<dynamic> images = await _channel.invokeMethod('pickImages', <String, dynamic>{
       'maxImages': maxImages,
       'enableCamera': enableCamera,
       'iosOptions': options.toJson(),
@@ -52,8 +50,8 @@ class MultiImagePicker {
 
     var assets = List<Asset>();
     for (var item in images) {
-      print(item.toString());
-      
+      //print(item.toString());
+
       var asset = Asset(
         item['identifier'],
         item['name'],
@@ -73,8 +71,7 @@ class MultiImagePicker {
   /// refer to [Asset] class docs.
   ///
   /// The actual image data is sent via BinaryChannel.
-  static Future<bool> requestThumbnail(
-      String identifier, int width, int height, int quality) async {
+  static Future<bool> requestThumbnail(String identifier, int width, int height, int quality) async {
     assert(identifier != null);
     assert(width != null);
     assert(height != null);
@@ -88,17 +85,11 @@ class MultiImagePicker {
     }
 
     if (quality < 0 || quality > 100) {
-      throw new ArgumentError.value(
-          quality, 'quality should be in range 0-100');
+      throw new ArgumentError.value(quality, 'quality should be in range 0-100');
     }
 
-    bool ret = await _channel.invokeMethod(
-        "requestThumbnail", <String, dynamic>{
-      "identifier": identifier,
-      "width": width,
-      "height": height,
-      "quality": quality
-    });
+    bool ret = await _channel.invokeMethod("requestThumbnail",
+        <String, dynamic>{"identifier": identifier, "width": width, "height": height, "quality": quality});
     return ret;
   }
 
@@ -145,8 +136,7 @@ class MultiImagePicker {
     @required String path,
   }) async {
     assert(path != null);
-    bool result = await _channel
-        .invokeMethod("refreshImage", <String, dynamic>{"path": path});
+    bool result = await _channel.invokeMethod("refreshImage", <String, dynamic>{"path": path});
 
     return result;
   }
@@ -184,8 +174,7 @@ class MultiImagePicker {
   static Future<bool> deleteImages({@required List<Asset> assets}) async {
     assert(assets != null);
     List<String> identifiers = assets.map((a) => a.identifier).toList();
-    bool result = await _channel.invokeMethod(
-        "deleteImages", <String, dynamic>{"identifiers": identifiers});
+    bool result = await _channel.invokeMethod("deleteImages", <String, dynamic>{"identifiers": identifiers});
 
     return result;
   }
