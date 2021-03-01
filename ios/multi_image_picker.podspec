@@ -16,7 +16,7 @@ A new flutter plugin project.
   s.public_header_files = 'Classes/**/*.h'
   s.dependency 'Flutter'
   
-  s.dependency 'BSImagePicker', '~> 2.9.1'
+  s.dependency 'BSImagePicker', '~> 2.9.2'
 
   s.pod_target_xcconfig = { "DEFINES_MODULE" => "YES" }
   s.swift_version = '4.2'
